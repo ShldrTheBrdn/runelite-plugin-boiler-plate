@@ -1,0 +1,7 @@
+{
+  "Makefile": "plugin/Makefile",
+  "build.gradle": "plugin/build.gradle",
+  "settings.gradle": "plugin/settings.gradle",
+  "flake.nix": "flake.nix",
+  "flake.lock": "flake.lock"
+}

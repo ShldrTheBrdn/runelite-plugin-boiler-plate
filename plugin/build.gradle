@@ -1,0 +1,82 @@
+plugins {
+	id 'java'
+}
+
+def pluginProperties = new Properties()
+file('runelite-plugin.properties').withReader('UTF-8') {
+	pluginProperties.load(it)
+}
+def pluginClass = pluginProperties.getProperty('plugins')
+def runeLiteVersion = 'latest.release'
+
+group = pluginClass.substring(0, pluginClass.lastIndexOf('.'))
+version = pluginProperties.getProperty('version')
+
+repositories {
+	maven {
+		url = 'https://repo.runelite.net'
+		content { includeGroupByRegex('net\\.runelite.*') }
+	}
+	mavenCentral()
+}
+
+dependencies {
+	compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
+	compileOnly 'org.projectlombok:lombok:1.18.30'
+	annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+	testImplementation 'junit:junit:4.12'
+	testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
+	testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.encoding = 'UTF-8'
+	options.release.set(11)
+}
+
+def authInterpreter = providers.environmentVariable('RUNELITE_JAGEXAUTH_INTERPRETER')
+def authLibraryPath = providers.environmentVariable('RUNELITE_JAGEXAUTH_LIBRARY_PATH')
+def authName = 'JagexAuth-Linux-' + System.getProperty('os.arch')
+def authBinary = layout.buildDirectory.file('jagexauth/' + authName)
+
+tasks.register('prepareJagexAuth') {
+	description = 'Prepare RuneLite\'s bundled login helper for the Nix environment'
+	group = 'application'
+	onlyIf { authInterpreter.isPresent() }
+	doLast {
+		if (!authLibraryPath.isPresent()) {
+			throw new GradleException('Jagex login libraries are missing; exit and re-enter nix develop')
+		}
+		def authJar = configurations.testRuntimeClasspath.find { it.name ==~ /jagexauth-.+\.jar/ }
+		if (authJar == null) {
+			throw new GradleException('RuneLite Jagex login helper was not found on the runtime classpath')
+		}
+		project.copy {
+			from(zipTree(authJar)) {
+				include 'net/runelite/jagexauth/' + authName
+				eachFile { path = name }
+			}
+			into authBinary.get().asFile.parentFile
+			includeEmptyDirs = false
+		}
+		if (!authBinary.get().asFile.isFile()) {
+			throw new GradleException('RuneLite does not include a login helper for ' + authName)
+		}
+		project.exec {
+			commandLine 'patchelf', '--set-interpreter', authInterpreter.get(),
+				'--set-rpath', authLibraryPath.get(), authBinary.get().asFile.absolutePath
+		}
+	}
+}
+
+tasks.register('run', JavaExec) {
+	dependsOn 'prepareJagexAuth'
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = pluginClass + 'Test'
+	jvmArgs '-ea'
+	args '--developer-mode', '--debug'
+	if (authInterpreter.isPresent()) {
+		systemProperty 'runelite.jagexauth', authBinary.get().asFile.absolutePath
+	}
+}

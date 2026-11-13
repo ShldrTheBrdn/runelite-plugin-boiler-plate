@@ -1,0 +1,14 @@
+package @@PACKAGE@@;
+
+import net.runelite.client.RuneLite;
+import net.runelite.client.externalplugins.ExternalPluginManager;
+
+// Development launcher, following RuneLite's example plugin convention.
+public class @@CLASS@@Test
+{
+	public static void main(String[] args) throws Exception
+	{
+		ExternalPluginManager.loadBuiltin(@@CLASS@@.class);
+		RuneLite.main(args);
+	}
+}

@@ -1,0 +1,19 @@
+package @@PACKAGE@@;
+
+import net.runelite.client.config.Config;
+import net.runelite.client.config.ConfigGroup;
+import net.runelite.client.config.ConfigItem;
+
+@ConfigGroup("@@ID@@")
+public interface @@BASE@@Config extends Config
+{
+	@ConfigItem(
+		keyName = "greeting",
+		name = "Greeting",
+		description = "The message displayed when you log in"
+	)
+	default String greeting()
+	{
+		return "@@NAME@@ is ready!";
+	}
+}

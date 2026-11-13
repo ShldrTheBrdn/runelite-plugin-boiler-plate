@@ -1,0 +1,37 @@
+package @@PACKAGE@@;
+
+import com.google.inject.Provides;
+import javax.inject.Inject;
+import net.runelite.api.ChatMessageType;
+import net.runelite.api.Client;
+import net.runelite.api.GameState;
+import net.runelite.api.events.GameStateChanged;
+import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.plugins.Plugin;
+import net.runelite.client.plugins.PluginDescriptor;
+
+@PluginDescriptor(name = "@@NAME@@")
+public class @@CLASS@@ extends Plugin
+{
+	@Inject
+	private Client client;
+
+	@Inject
+	private @@BASE@@Config config;
+
+	@Subscribe
+	public void onGameStateChanged(GameStateChanged event)
+	{
+		if (event.getGameState() == GameState.LOGGED_IN)
+		{
+			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", config.greeting(), null);
+		}
+	}
+
+	@Provides
+	@@BASE@@Config provideConfig(ConfigManager configManager)
+	{
+		return configManager.getConfig(@@BASE@@Config.class);
+	}
+}
